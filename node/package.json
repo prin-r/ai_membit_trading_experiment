@@ -1,0 +1,16 @@
+{
+  "name": "ai-api-client",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "example": "tsx src/example.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}
