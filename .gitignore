@@ -1,0 +1,14 @@
+# Node
+node/node_modules/
+node/dist/
+node/.env
+
+# Python (uv)
+python/.venv/
+python/__pycache__/
+python/*.egg-info/
+python/.env
+python/uv.lock
+python/.states/
+python/.results/
+*.pyc
