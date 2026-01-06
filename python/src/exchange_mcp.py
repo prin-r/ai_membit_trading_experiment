@@ -11,6 +11,7 @@ The agent decides trade sizes based on its analysis.
 Price data is provided in the system prompt, not via a tool.
 Symbol-agnostic: works with any trading pair available in Band Protocol.
 """
+
 import json
 import os
 from datetime import datetime
@@ -19,8 +20,12 @@ from dataclasses import dataclass, asdict
 
 from .price_client import PriceContext
 from .state_manager import (
-    load_portfolio, save_portfolio, get_portfolio_value,
-    Portfolio, Position, STARTING_CAPITAL
+    load_portfolio,
+    save_portfolio,
+    get_portfolio_value,
+    Portfolio,
+    Position,
+    STARTING_CAPITAL,
 )
 
 
@@ -174,15 +179,17 @@ class ExchangeMCP:
         portfolio.total_fees_paid += fee
 
         # Record trade
-        portfolio.trade_history.append({
-            "type": "buy",
-            "symbol": symbol,
-            "timestamp": datetime.now().isoformat(),
-            "usd_amount": usd_amount,
-            "asset_amount": asset_to_buy,
-            "price": current_price,
-            "fee": fee,
-        })
+        portfolio.trade_history.append(
+            {
+                "type": "buy",
+                "symbol": symbol,
+                "timestamp": datetime.now().isoformat(),
+                "usd_amount": usd_amount,
+                "asset_amount": asset_to_buy,
+                "price": current_price,
+                "fee": fee,
+            }
+        )
 
         save_portfolio(portfolio, self.state_file)
 
@@ -199,10 +206,12 @@ class ExchangeMCP:
                 "price": round(current_price, 2),
                 "new_asset_total": round(portfolio.position.asset_amount, 8),
                 "remaining_cash": round(portfolio.current_capital, 2),
-            }
+            },
         )
 
-    def tool_sell(self, asset_amount: float, symbol: Optional[str] = None) -> TradeResult:
+    def tool_sell(
+        self, asset_amount: float, symbol: Optional[str] = None
+    ) -> TradeResult:
         """
         MCP Tool: Sell specified amount of asset.
 
@@ -273,18 +282,20 @@ class ExchangeMCP:
         portfolio.total_realized_pnl += pnl
 
         # Record trade
-        portfolio.trade_history.append({
-            "type": "sell",
-            "symbol": symbol,
-            "timestamp": datetime.now().isoformat(),
-            "asset_amount": asset_amount,
-            "gross_proceeds": gross_proceeds,
-            "fee": fee,
-            "usd_received": net_proceeds,
-            "price": current_price,
-            "pnl": pnl,
-            "pnl_percent": pnl_percent,
-        })
+        portfolio.trade_history.append(
+            {
+                "type": "sell",
+                "symbol": symbol,
+                "timestamp": datetime.now().isoformat(),
+                "asset_amount": asset_amount,
+                "gross_proceeds": gross_proceeds,
+                "fee": fee,
+                "usd_received": net_proceeds,
+                "price": current_price,
+                "pnl": pnl,
+                "pnl_percent": pnl_percent,
+            }
+        )
 
         # Clear position if fully sold
         remaining_asset = portfolio.position.asset_amount
@@ -309,7 +320,7 @@ class ExchangeMCP:
                 "pnl_percent": round(pnl_percent, 2),
                 "remaining_asset": round(remaining_asset, 8),
                 "new_cash_balance": round(portfolio.current_capital, 2),
-            }
+            },
         )
 
     def tool_hold(self, symbol: Optional[str] = None) -> TradeResult:
@@ -341,13 +352,14 @@ class ExchangeMCP:
             details={
                 "portfolio_value": round(portfolio_value, 2),
                 "has_position": portfolio.position is not None,
-            }
+            },
         )
 
 
 # =========================================
 # MCP TOOL DEFINITIONS (for AI prompt)
 # =========================================
+
 
 def get_exchange_tools(symbol: str = "BTC") -> List[Dict[str, Any]]:
     """
@@ -367,16 +379,16 @@ def get_exchange_tools(symbol: str = "BTC") -> List[Dict[str, Any]]:
                 "properties": {
                     "usd_amount": {
                         "type": "number",
-                        "description": "Amount of USD to spend (0.10% fee charged on top). Must be > 0 and total cost <= available cash."
+                        "description": "Amount of USD to spend (0.10% fee charged on top). Must be > 0 and total cost <= available cash.",
                     },
                     "symbol": {
                         "type": "string",
                         "description": f"Asset symbol to buy (default: {symbol})",
-                        "default": symbol
-                    }
+                        "default": symbol,
+                    },
                 },
-                "required": ["usd_amount"]
-            }
+                "required": ["usd_amount"],
+            },
         },
         {
             "name": "sell",
@@ -386,15 +398,15 @@ def get_exchange_tools(symbol: str = "BTC") -> List[Dict[str, Any]]:
                 "properties": {
                     "asset_amount": {
                         "type": "number",
-                        "description": "Amount of asset to sell (0.10% fee deducted from proceeds). Must be > 0 and <= current holdings."
+                        "description": "Amount of asset to sell (0.10% fee deducted from proceeds). Must be > 0 and <= current holdings.",
                     },
                     "symbol": {
                         "type": "string",
                         "description": f"Asset symbol to sell (default: {symbol})",
-                        "default": symbol
-                    }
+                        "default": symbol,
+                    },
                 },
-                "required": ["asset_amount"]
-            }
+                "required": ["asset_amount"],
+            },
         },
     ]

@@ -2,6 +2,7 @@
 Persistent state manager for tracking trading position and portfolio capital.
 Each configuration starts with $10,000 and trades to maximize P&L.
 """
+
 import json
 import os
 from typing import Optional, List, Dict, Any
@@ -14,12 +15,12 @@ STARTING_CAPITAL = 10000.0
 
 @dataclass
 class Position:
-    action: str           # "buy"
-    price: float          # Entry price per unit
-    timestamp: str        # ISO format timestamp
-    symbol: str = "BTC"   # Asset symbol (e.g., "BTC", "ETH")
-    asset_amount: float = 0.0    # How much asset was bought
-    capital_used: float = 0.0    # How much USD was spent
+    action: str  # "buy"
+    price: float  # Entry price per unit
+    timestamp: str  # ISO format timestamp
+    symbol: str = "BTC"  # Asset symbol (e.g., "BTC", "ETH")
+    asset_amount: float = 0.0  # How much asset was bought
+    capital_used: float = 0.0  # How much USD was spent
 
 
 @dataclass
@@ -99,7 +100,9 @@ def format_portfolio_context(portfolio: Portfolio, current_price: float) -> str:
     pnl_sign = "+" if total_pnl >= 0 else ""
 
     if portfolio.position:
-        unrealized_pnl = (current_price - portfolio.position.price) * portfolio.position.asset_amount
+        unrealized_pnl = (
+            current_price - portfolio.position.price
+        ) * portfolio.position.asset_amount
         unrealized_sign = "+" if unrealized_pnl >= 0 else ""
         position_status = f"""OPEN POSITION:
 - {portfolio.position.symbol} Holdings: {portfolio.position.asset_amount:.6f} {portfolio.position.symbol}

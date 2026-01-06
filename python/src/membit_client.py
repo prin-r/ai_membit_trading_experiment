@@ -2,9 +2,18 @@
 Membit client wrapper for fetching contextual data.
 https://docs.membit.ai/api-usage/python
 """
+
 import os
+import re
 from typing import Optional, List, Any
 from membit import MembitClient
+
+
+def strip_url_lines(text: str) -> str:
+    """Remove lines containing **URL**: from Membit LLM output."""
+    lines = text.split("\n")
+    filtered = [line for line in lines if not re.match(r"^\*\*URL\*\*:", line.strip())]
+    return "\n".join(filtered)
 
 
 def get_env(key: str) -> str:
@@ -28,38 +37,46 @@ class MembitWrapper:
         Returns list of cluster objects from the 'clusters' key in the response.
         """
         response = self.client.cluster_search(query, limit=limit)
-        if self.verbose:
-            print(f"    [Membit] cluster_search('{query}') raw response: {response}")
         # Response is a dict with 'clusters' key containing the list
         if isinstance(response, dict):
             clusters = response.get("clusters", [])
-            if self.verbose:
-                print(f"    [Membit] Found {len(clusters)} clusters")
             return clusters
         return []
 
-    def search_posts(self, query: str, limit: int = 10) -> List[Any]:
+    def search_posts(self, query: str, limit: int = 10) -> str:
         """Search for individual posts.
 
-        Returns list of post objects from the 'posts' key in the response.
+        Returns LLM-formatted string from Membit API (with URLs stripped).
         """
-        response = self.client.post_search(query, limit=limit, output_format="json")
-        if self.verbose:
-            print(f"    [Membit] post_search('{query}') raw response: {response}")
-        # Response is a dict with 'posts' key containing the list
-        if isinstance(response, dict):
-            posts = response.get("posts", [])
-            if self.verbose:
-                print(f"    [Membit] Found {len(posts)} posts")
-            return posts
-        return []
+        response = self.client.post_search(query, limit=limit, output_format="llm")
+        # With output_format="llm", response is a pre-formatted string
+        if isinstance(response, str):
+            result = strip_url_lines(response)
+        elif isinstance(response, dict):
+            content = response.get("content", str(response))
+            result = strip_url_lines(content)
+        else:
+            result = strip_url_lines(str(response)) if response else "No posts found."
 
-    def get_cluster_info(self, cluster_name: str, limit: int = 5) -> Any:
+        return result
+
+    def get_cluster_info(self, cluster_name: str, limit: int = 5) -> str:
         """Get detailed info about a specific cluster."""
-        response = self.client.cluster_info(cluster_name, limit=limit, output_format="json")
-        if self.verbose:
-            print(f"    [Membit] cluster_info('{cluster_name}') raw response: {response}")
-        return response
+        response = self.client.cluster_info(
+            cluster_name, limit=limit, output_format="llm"
+        )
+        # With output_format="llm", response is a pre-formatted string
+        if isinstance(response, str):
+            result = strip_url_lines(response)
+        elif isinstance(response, dict):
+            content = response.get("content", str(response))
+            result = strip_url_lines(content)
+        else:
+            result = (
+                strip_url_lines(str(response)) if response else "No cluster info found."
+            )
+
+        return result
 
     def format_context_for_prompt(self, posts: List[Any]) -> str:
         """Format Membit search results as context for AI prompt."""

@@ -5,6 +5,7 @@ Free API, no authentication required.
 
 Includes PriceContext singleton for sharing price data across modules.
 """
+
 import requests
 from datetime import datetime
 from typing import Any, Optional, Dict
@@ -28,6 +29,7 @@ class PriceContext:
         ctx.get_price(symbol)       # Get stored price
         ctx.format_for_prompt()     # Format for AI prompt
     """
+
     _instance: Optional["PriceContext"] = None
 
     def __init__(self):
@@ -96,6 +98,7 @@ class PriceContext:
 
 
 # Convenience functions
+
 
 def fetch_price(symbol: str = "BTC") -> float:
     """Fetch price and store in global context. Returns the price."""

@@ -14,29 +14,44 @@ This module contains:
 MEMBIT_SEARCH_STRATEGY = """
 ## Membit Search Strategy
 
+IMPORTANT: Always only use "$BTC" (with dollar sign) in queries, NOT "BTC" or "Bitcoin" or something else.
+Please also keep in mind that you are searching for a list of posts and clusters from a RAG database (a vector database), NOT for a summarization or news article or actual signals.
+
 When searching for social sentiment, use these SPECIFIC queries for actionable trading signals:
 
-### For Posts (search_posts) - Use these exact queries:
-- "BTC breaking resistance today"
-- "Bitcoin whale selling"
-- "BTC pump signal"
-- "Bitcoin dump warning"
-- "BTC bullish breakout"
-- "Bitcoin bearish reversal"
-- "BTC trending prediction"
-- "Bitcoin price target"
+### For Posts (search_posts) - For examples:
+- "$BTC breaking resistance today"
+- "$BTC whale"
+- "$BTC pump signal"
+- "$BTC dump warning"
+- "$BTC bullish breakout"
+- "$BTC bearish reversal"
+- "$BTC trending"
+- "$BTC prediction"
+Please be more creative and use your own words. Try to think about things that might affect $BTC.
 
-### For Clusters (search_clusters) - Use these exact queries:
-- "BTC technical breakout"
-- "Bitcoin whale activity"
-- "BTC price prediction"
-- "Bitcoin market reversal"
+### For Clusters (search_clusters) - For examples:
+- "$BTC technical breakout"
+- "$BTC whale"
+- "$BTC trending"
+- "$BTC activity"
+- "$BTC market"
+- "$BTC global warming"
+Please be more creative and use your own words. Try to think about things that might affect $BTC.
+
+### Optional: Include well-known entities (randomly, not every time):
+You may occasionally include mentions of influential entities to capture relevant news:
+- "$BTC Elon Musk" or "$BTC Trump"
+- "$BTC FED" or "$BTC JPMorgan"
+- "$BTC China" or "$BTC USA"
+- "$BTC war" or "$BTC tariff"
 
 DO NOT use generic queries like:
-- ❌ "BTC market sentiment" (too vague)
+- ❌ "BTC market sentiment" (wrong format - use $BTC)
+- ❌ "Bitcoin news" (wrong format - use $BTC)
 - ❌ "crypto" (returns lifestyle content)
-- ❌ "BTC related" (non-actionable)
-- ❌ "Bitcoin news" (too broad)
+- ❌ "$BTC related" (non-actionable)
+- ❌ something that is too long.
 
 These generic queries return philosophical/lifestyle content with NO trading signal.
 """.strip()
@@ -49,16 +64,16 @@ These generic queries return philosophical/lifestyle content with NO trading sig
 TRADING_ACTIONS_INSTRUCTION = """
 ## Trading Actions
 
-You have ONLY 2 trading tools available:
+You have ONLY 2 actions available:
 - buy(usd_amount, symbol): Purchase {symbol} with USD - ONLY if you have available cash
 - sell(asset_amount, symbol): Sell {symbol} for USD - ONLY if you have a position to sell
 
 CRITICAL RULES:
-1. You can ONLY call "buy" or "sell". No other tools exist for trading.
+1. You can ONLY call "buy" or "sell". No other actions exist for trading.
 2. You CANNOT sell if you have NO POSITION (has_position: false)
 3. You CANNOT buy if you have NO CASH (available_cash: 0)
 4. If you want to HOLD - simply provide your analysis WITHOUT calling any tool
-5. Do NOT invent or call tools that don't exist (e.g., analyze_structure, get_market_data, etc.)
+5. Do NOT invent or call actions that don't exist (e.g., analyze_structure, get_market_data, etc.)
 
 AMOUNT RULES:
 - If you want to BUY more than your available_cash: use available_cash as usd_amount (buy max)
@@ -86,14 +101,25 @@ MEMBIT_REQUIRED_INSTRUCTION = """
 
    This is MANDATORY. Do NOT skip this step.
 
-   After reviewing social context, explain:
-   - What sentiment/news you found
+   CRITICAL: After calling a Membit tool, STOP IMMEDIATELY and WAIT for results.
+   - Do NOT assume, imagine, or speculate what the results might be.
+   - Do NOT write "Assuming I received..." or "Based on expected results..."
+   - The actual results will be provided to you in the next message.
+   - Only AFTER you receive real results should you analyze them and make a decision.
+
+   After reviewing ACTUAL social context results, explain:
+   - What sentiment/news you found (from the REAL data provided)
    - How it influenced your trading decision (bullish, bearish, or neutral signal)
-   - If you choose NOT to call a Membit tool, you MUST explain why you are skipping it
 """.strip()
 
 MEMBIT_DISABLED_INSTRUCTION = """
 3. Make your decision based on the technical indicators above. Explain your reasoning.
+
+IMPORTANT: You have ALL the information you need in the context above.
+- Do NOT try to call tools like "search_posts", "get_market_data", "price_trend", "analyze_structure", etc.
+- These tools DO NOT EXIST. The ONLY tools available are "buy" and "sell".
+- All market data, indicators, and portfolio info are already provided above.
+- Simply analyze the data and decide: buy, sell, or hold (no tool call).
 """.strip()
 
 
@@ -149,6 +175,7 @@ Factor this into your trading decisions - you need >0.20% price movement to prof
 # HELPER FUNCTIONS
 # =========================================
 
+
 def build_portfolio_context(portfolio_data: dict) -> str:
     """
     Format portfolio data for system prompt injection.
@@ -171,17 +198,19 @@ def build_portfolio_context(portfolio_data: dict) -> str:
         f"- Has Position: {portfolio_data['has_position']}",
     ]
 
-    if portfolio_data.get('has_position') and portfolio_data.get('position'):
-        pos = portfolio_data['position']
-        lines.extend([
-            "",
-            "### Current Position",
-            f"- Asset: {pos['asset_amount']:.8f} {pos['symbol']}",
-            f"- Entry Price: ${pos['entry_price']:,.2f}",
-            f"- Current Price: ${pos['current_price']:,.2f}",
-            f"- Position Value: ${pos['position_value']:,.2f}",
-            f"- Unrealized P&L: ${pos['unrealized_pnl']:+,.2f}",
-        ])
+    if portfolio_data.get("has_position") and portfolio_data.get("position"):
+        pos = portfolio_data["position"]
+        lines.extend(
+            [
+                "",
+                "### Current Position",
+                f"- Asset: {pos['asset_amount']:.8f} {pos['symbol']}",
+                f"- Entry Price: ${pos['entry_price']:,.2f}",
+                f"- Current Price: ${pos['current_price']:,.2f}",
+                f"- Position Value: ${pos['position_value']:,.2f}",
+                f"- Unrealized P&L: ${pos['unrealized_pnl']:+,.2f}",
+            ]
+        )
 
     return "\n".join(lines)
 
@@ -192,6 +221,7 @@ def build_system_prompt(
     market_context: str,
     tool_prompt: str,
     use_membit: bool = False,
+    max_tool_rounds: int = 3,
 ) -> str:
     """
     Build the complete system prompt for the trading agent.
@@ -202,11 +232,14 @@ def build_system_prompt(
         market_context: Pre-formatted market data (price, indicators)
         tool_prompt: Formatted tool definitions
         use_membit: Whether Membit tools are enabled
+        max_tool_rounds: Maximum number of tool interaction rounds
 
     Returns:
         Complete system prompt string
     """
-    membit_instruction = MEMBIT_REQUIRED_INSTRUCTION if use_membit else MEMBIT_DISABLED_INSTRUCTION
+    membit_instruction = (
+        MEMBIT_REQUIRED_INSTRUCTION if use_membit else MEMBIT_DISABLED_INSTRUCTION
+    )
     membit_strategy = MEMBIT_SEARCH_STRATEGY if use_membit else ""
     trading_actions = TRADING_ACTIONS_INSTRUCTION.format(symbol=symbol)
 
@@ -237,6 +270,12 @@ INSTRUCTIONS:
 5. You decide HOW MUCH to trade based on your conviction level
 6. ONLY use the tools listed above. Do NOT call tools that are not in the AVAILABLE TOOLS list.
 7. ONLY trade with funds you actually have (check available_cash in portfolio)
+
+ROUND LIMIT: You have a MAXIMUM of {max_tool_rounds} tool interaction rounds.
+- Each time you call a tool and receive results counts as 1 round.
+- After {max_tool_rounds} rounds, you MUST make a final trading decision (buy, sell, or hold).
+- Do NOT call more tools after reaching the limit - make your decision with the information you have.
+- Plan your tool usage efficiently: gather information first, then execute your trade.
 
 Remember: You don't have to go all-in. Scale your position based on conviction.
 If uncertain, don't trade - just explain your reasoning without calling any tool.

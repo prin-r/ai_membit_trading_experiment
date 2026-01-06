@@ -51,10 +51,14 @@ def run_single_agent(
         verbose=verbose,
     )
 
+    # When Membit is disabled, only 1 round needed (just buy/sell decision)
+    # When Membit is enabled, 3 rounds for: search -> analyze -> trade
+    max_rounds = 3 if use_membit else 1
+
     result = agent.run(
         model=model,
         market_context=market_context,
-        max_tool_rounds=3,
+        max_tool_rounds=max_rounds,
         max_tokens=1200,
     )
 
@@ -90,7 +94,9 @@ def run_once(symbol: str = DEFAULT_SYMBOL, verbose: bool = False):
     price_context_str = format_price_context(symbol)
     indicators_context = format_indicators_context(indicators, price)
 
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     market_context = f"""CURRENT MARKET DATA:
+Timestamp: {current_time}
 {price_context_str}
 
 {indicators_context}
@@ -107,7 +113,9 @@ def run_once(symbol: str = DEFAULT_SYMBOL, verbose: bool = False):
             portfolio = load_portfolio(state_file)
             portfolio_value = get_portfolio_value(portfolio, price)
 
-            print(f"[{model}] ({mode}) - Portfolio: ${portfolio_value:,.2f}")
+            print("\n")
+            print("=" * 50)
+            print(f"[{current_time}] [{model}] ({mode}) - Portfolio: ${portfolio_value:,.2f}")
 
             try:
                 result = run_single_agent(model, symbol, use_membit, market_context, verbose)

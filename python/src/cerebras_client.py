@@ -2,6 +2,7 @@
 Cerebras client using the official Cerebras Cloud SDK.
 https://github.com/Cerebras/cerebras-cloud-sdk-python
 """
+
 import os
 from cerebras.cloud.sdk import Cerebras
 from .types import CallOptions, AIResponse

@@ -3,6 +3,7 @@ Compare Membit vs Basic mode results over time.
 Analyzes which mode (with or without Membit tools) gives better trading results per model.
 Includes leaderboard showing current portfolio values across all configurations.
 """
+
 import json
 import os
 from dataclasses import dataclass, field
@@ -78,7 +79,9 @@ def analyze_results(results: List[Dict[str, Any]]) -> Dict[str, ModelComparison]
         if model not in comparisons:
             comparisons[model] = ModelComparison(model=model)
 
-        stats = comparisons[model].membit if mode == "membit" else comparisons[model].basic
+        stats = (
+            comparisons[model].membit if mode == "membit" else comparisons[model].basic
+        )
 
         if "error" in r:
             stats.errors += 1
@@ -115,10 +118,14 @@ def analyze_results(results: List[Dict[str, Any]]) -> Dict[str, ModelComparison]
 
 def print_stats(label: str, s: ModeStats):
     """Print stats for a mode."""
-    win_rate = (s.winning_trades / s.positions_closed * 100) if s.positions_closed > 0 else 0
+    win_rate = (
+        (s.winning_trades / s.positions_closed * 100) if s.positions_closed > 0 else 0
+    )
     print(f"  {label}:")
     print(f"    Runs: {s.total_runs} | Errors: {s.errors}")
-    print(f"    Signals: BUY={s.buy_signals} SELL={s.sell_signals} HOLD={s.hold_signals}")
+    print(
+        f"    Signals: BUY={s.buy_signals} SELL={s.sell_signals} HOLD={s.hold_signals}"
+    )
     print(f"    Trades: {s.positions_closed} closed | Win Rate: {win_rate:.1f}%")
     print(f"    Total P&L: ${s.total_pnl:+,.2f}")
     if s.tool_calls > 0:
@@ -143,27 +150,33 @@ def print_leaderboard(current_price: float):
             portfolio_value = get_portfolio_value(portfolio, current_price)
             pnl = portfolio_value - portfolio.starting_capital
             pnl_percent = (pnl / portfolio.starting_capital) * 100
-            leaderboard.append({
-                "config": f"{model} ({mode})",
-                "value": portfolio_value,
-                "pnl": pnl,
-                "pnl_percent": pnl_percent,
-                "trades": len(portfolio.trade_history),
-                "has_position": portfolio.position is not None,
-            })
+            leaderboard.append(
+                {
+                    "config": f"{model} ({mode})",
+                    "value": portfolio_value,
+                    "pnl": pnl,
+                    "pnl_percent": pnl_percent,
+                    "trades": len(portfolio.trade_history),
+                    "has_position": portfolio.position is not None,
+                }
+            )
 
     leaderboard.sort(key=lambda x: x["value"], reverse=True)
 
     for i, entry in enumerate(leaderboard, 1):
         position_indicator = "*" if entry["has_position"] else " "
-        print(f"  {i:<6}{entry['config']:<32}${entry['value']:>12,.2f}  ${entry['pnl']:>+11,.2f}  {entry['pnl_percent']:>+7.2f}%{position_indicator}")
+        print(
+            f"  {i:<6}{entry['config']:<32}${entry['value']:>12,.2f}  ${entry['pnl']:>+11,.2f}  {entry['pnl_percent']:>+7.2f}%{position_indicator}"
+        )
 
     print("\n  * = has open BTC position")
 
     if leaderboard:
         winner = leaderboard[0]
         print(f"\n  LEADER: {winner['config']}")
-        print(f"          ${winner['value']:,.2f} ({winner['pnl_percent']:+.2f}% return)")
+        print(
+            f"          ${winner['value']:,.2f} ({winner['pnl_percent']:+.2f}% return)"
+        )
 
 
 def print_report(comparisons: Dict[str, ModelComparison]):
@@ -228,8 +241,12 @@ def print_report(comparisons: Dict[str, ModelComparison]):
     print("\n" + "-" * 70)
     all_configs = []
     for model, comp in comparisons.items():
-        all_configs.append((f"{model} (basic)", comp.basic.total_pnl, comp.basic.positions_closed))
-        all_configs.append((f"{model} (membit)", comp.membit.total_pnl, comp.membit.positions_closed))
+        all_configs.append(
+            (f"{model} (basic)", comp.basic.total_pnl, comp.basic.positions_closed)
+        )
+        all_configs.append(
+            (f"{model} (membit)", comp.membit.total_pnl, comp.membit.positions_closed)
+        )
 
     # Filter to those with at least one trade
     configs_with_trades = [c for c in all_configs if c[2] > 0]

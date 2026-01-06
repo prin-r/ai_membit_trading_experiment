@@ -8,6 +8,7 @@ Indicators (4 API calls, within free tier limit of 8/min):
 3. Bollinger Bands (20, 2) - Volatility: Price range from average
 4. RSI (14) - Sentiment: Overbought (>70) / Oversold (<30)
 """
+
 import os
 import requests
 from typing import Any, Optional
@@ -78,7 +79,9 @@ def get_env(key: str) -> str:
     return value
 
 
-def fetch_sma(symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 200) -> SMAData:
+def fetch_sma(
+    symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 200
+) -> SMAData:
     """Fetch Simple Moving Average (SMA) - Trend indicator."""
     api_key = get_env("TWELVE_DATA_API_KEY")
 
@@ -90,13 +93,15 @@ def fetch_sma(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
             "time_period": time_period,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"SMA data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"SMA data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return SMAData(
@@ -111,7 +116,7 @@ def fetch_macd(
     interval: str = "1day",
     fast_period: int = 12,
     slow_period: int = 26,
-    signal_period: int = 9
+    signal_period: int = 9,
 ) -> MACDData:
     """Fetch MACD - Momentum indicator."""
     api_key = get_env("TWELVE_DATA_API_KEY")
@@ -126,13 +131,15 @@ def fetch_macd(
             "signal_period": signal_period,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"MACD data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"MACD data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return MACDData(
@@ -148,7 +155,7 @@ def fetch_bbands(
     symbol: str = "BTC/USD",
     interval: str = "1day",
     time_period: int = 20,
-    sd: float = 2.0
+    sd: float = 2.0,
 ) -> BollingerBandsData:
     """Fetch Bollinger Bands - Volatility indicator."""
     api_key = get_env("TWELVE_DATA_API_KEY")
@@ -162,13 +169,15 @@ def fetch_bbands(
             "sd": sd,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"Bollinger Bands data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"Bollinger Bands data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return BollingerBandsData(
@@ -180,7 +189,9 @@ def fetch_bbands(
     )
 
 
-def fetch_rsi(symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 14) -> RSIData:
+def fetch_rsi(
+    symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 14
+) -> RSIData:
     """Fetch RSI - Sentiment/Overbought/Oversold indicator."""
     api_key = get_env("TWELVE_DATA_API_KEY")
 
@@ -192,13 +203,15 @@ def fetch_rsi(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
             "time_period": time_period,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"RSI data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"RSI data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return RSIData(
@@ -208,7 +221,9 @@ def fetch_rsi(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
     )
 
 
-def fetch_ema(symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 21) -> EMAData:
+def fetch_ema(
+    symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 21
+) -> EMAData:
     """Fetch Exponential Moving Average (EMA) - Trend indicator with more weight on recent prices."""
     api_key = get_env("TWELVE_DATA_API_KEY")
 
@@ -220,13 +235,15 @@ def fetch_ema(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
             "time_period": time_period,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"EMA data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"EMA data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return EMAData(
@@ -236,7 +253,9 @@ def fetch_ema(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
     )
 
 
-def fetch_atr(symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 14) -> ATRData:
+def fetch_atr(
+    symbol: str = "BTC/USD", interval: str = "1day", time_period: int = 14
+) -> ATRData:
     """Fetch Average True Range (ATR) - Volatility indicator."""
     api_key = get_env("TWELVE_DATA_API_KEY")
 
@@ -248,13 +267,15 @@ def fetch_atr(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
             "time_period": time_period,
             "apikey": api_key,
             "outputsize": 1,
-        }
+        },
     )
     response.raise_for_status()
     data = response.json()
 
     if "values" not in data or not data["values"]:
-        raise ValueError(f"ATR data not available: {data.get('message', 'Unknown error')}")
+        raise ValueError(
+            f"ATR data not available: {data.get('message', 'Unknown error')}"
+        )
 
     latest = data["values"][0]
     return ATRData(
@@ -264,7 +285,9 @@ def fetch_atr(symbol: str = "BTC/USD", interval: str = "1day", time_period: int 
     )
 
 
-def fetch_all_indicators(symbol: str = "BTC/USD", interval: str = "1day") -> TechnicalIndicators:
+def fetch_all_indicators(
+    symbol: str = "BTC/USD", interval: str = "1day"
+) -> TechnicalIndicators:
     """Fetch all technical indicators for a symbol (4 API calls)."""
     return TechnicalIndicators(
         sma_200=fetch_sma(symbol, interval, time_period=200),
@@ -274,7 +297,9 @@ def fetch_all_indicators(symbol: str = "BTC/USD", interval: str = "1day") -> Tec
     )
 
 
-def format_indicators_context(indicators: TechnicalIndicators, current_price: float) -> str:
+def format_indicators_context(
+    indicators: TechnicalIndicators, current_price: float
+) -> str:
     """Format technical indicators as context for AI prompt (raw values only, no interpretation)."""
     lines = ["TECHNICAL INDICATORS:"]
 
@@ -284,11 +309,15 @@ def format_indicators_context(indicators: TechnicalIndicators, current_price: fl
 
     # MACD - Momentum
     if indicators.macd:
-        lines.append(f"2. MACD(12,26,9): MACD={indicators.macd.macd:.2f}, Signal={indicators.macd.macd_signal:.2f}, Histogram={indicators.macd.macd_hist:.2f}")
+        lines.append(
+            f"2. MACD(12,26,9): MACD={indicators.macd.macd:.2f}, Signal={indicators.macd.macd_signal:.2f}, Histogram={indicators.macd.macd_hist:.2f}"
+        )
 
     # Bollinger Bands - Volatility
     if indicators.bbands:
-        lines.append(f"3. Bollinger Bands(20,2): Upper=${indicators.bbands.upper_band:,.2f}, Middle=${indicators.bbands.middle_band:,.2f}, Lower=${indicators.bbands.lower_band:,.2f}")
+        lines.append(
+            f"3. Bollinger Bands(20,2): Upper=${indicators.bbands.upper_band:,.2f}, Middle=${indicators.bbands.middle_band:,.2f}, Lower=${indicators.bbands.lower_band:,.2f}"
+        )
 
     # RSI - Sentiment
     if indicators.rsi:
