@@ -102,15 +102,6 @@ def format_tools_for_prompt(tools: List[Dict]) -> str:
         return ""
 
     lines = [
-        "AVAILABLE TOOLS:",
-        "You can call these tools to gather information and execute trades.",
-        "",
-        "IMPORTANT: To call a tool, you MUST use this EXACT format:",
-        'TOOL_CALL: {"name": "tool_name", "arguments": {...}}',
-        "",
-        "Example:",
-        'TOOL_CALL: {"name": "search_posts", "arguments": {"query": "$BTC whale", "limit": 5}}',
-        "",
         "CRITICAL RULES FOR TOOL CALLS:",
         "1. Do NOT use code blocks, variables, or any other format. Just write TOOL_CALL: followed by the JSON.",
         "2. Do NOT use commas in numbers (write 10000 not 10,000).",
@@ -322,6 +313,11 @@ class TradingAgent:
             max_tool_rounds=max_tool_rounds,
         )
 
+        print("-" * 100)
+
+        # print(system_prompt)
+        # print("\n")
+
         tool_calls_made = []
         conversation = []
         executed_action = None
@@ -344,6 +340,8 @@ Your portfolio status is provided in the system context above.
 Based on the portfolio data, technical indicators {",and information from Membit" if self.use_membit else ""}, make your trading decision.
 
 Remember: If you decide to HOLD, simply explain your reasoning without calling any tool."""
+
+        # print(user_message)
 
         # Phase 2: Let AI analyze and decide
         response = call_cerebras(
@@ -452,6 +450,9 @@ Remember: If you decide to HOLD, simply explain your reasoning without calling a
 
             # Continue conversation with tool results
             follow_up = f"Tool results:\n\n{results_text}\n\nContinue your analysis and make a trading decision."
+
+            # print("\n")
+            # print(f"{user_message}\n\n{follow_up}")
 
             response = call_cerebras(
                 CallOptions(

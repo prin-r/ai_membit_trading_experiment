@@ -12,48 +12,22 @@ This module contains:
 # =========================================
 
 MEMBIT_SEARCH_STRATEGY = """
-## Membit Search Strategy
+## MEMBIT: WHAT IT IS (IMPORTANT)
+Membit returns retrieved social posts / clusters from a vector/RAG index.
+Treat it as noisy market chatter: sometimes useful and sometimes spammy, not ground-truth “news”.
+You MUST triage quality before using it as evidence.
 
-IMPORTANT: Always only use "$BTC" (with dollar sign) in queries, NOT "BTC" or "Bitcoin" or something else.
-Please also keep in mind that you are searching for a list of posts and clusters from a RAG database (a vector database), NOT for a summarization or news article or actual signals.
+## MEMBIT QUERY RULES (UX-optimized)
+- Always use "{cashtag}" (with the dollar sign) in queries.
+- Prefer not too long queries: "{cashtag}" + 3–10 keywords max.
 
-When searching for social sentiment, use these SPECIFIC queries for actionable trading signals:
-
-### For Posts (search_posts) - For examples:
-- "$BTC breaking resistance today"
-- "$BTC whale"
-- "$BTC pump signal"
-- "$BTC dump warning"
-- "$BTC bullish breakout"
-- "$BTC bearish reversal"
-- "$BTC trending"
-- "$BTC prediction"
-Please be more creative and use your own words. Try to think about things that might affect $BTC.
-
-### For Clusters (search_clusters) - For examples:
-- "$BTC technical breakout"
-- "$BTC whale"
-- "$BTC trending"
-- "$BTC activity"
-- "$BTC market"
-- "$BTC global warming"
-Please be more creative and use your own words. Try to think about things that might affect $BTC.
-
-### Optional: Include well-known entities (randomly, not every time):
-You may occasionally include mentions of influential entities to capture relevant news:
-- "$BTC Elon Musk" or "$BTC Trump"
-- "$BTC FED" or "$BTC JPMorgan"
-- "$BTC China" or "$BTC USA"
-- "$BTC war" or "$BTC tariff"
-
-DO NOT use generic queries like:
-- ❌ "BTC market sentiment" (wrong format - use $BTC)
-- ❌ "Bitcoin news" (wrong format - use $BTC)
-- ❌ "crypto" (returns lifestyle content)
-- ❌ "$BTC related" (non-actionable)
-- ❌ something that is too long.
-
-These generic queries return philosophical/lifestyle content with NO trading signal.
+### Recommended query templates (can combine multiple things together)
+- Macro/Policy: "{cashtag} FED", "{cashtag} rates", "{cashtag} CPI", "{cashtag} liquidity"
+- Flows/Institutions: "{cashtag} ETF", "{cashtag} BlackRock", "{cashtag} inflow", "{cashtag} outflow"
+- Regulation/Geo: "{cashtag} SEC", "{cashtag} China", "{cashtag} USA", "{cashtag} war"
+- Market structure: "{cashtag} breakout", "{cashtag} resistance", "{cashtag} support"
+- Whale/Exchange: "{cashtag} whale", "{cashtag} Binance", "{cashtag} Coinbase"
+- Risk events: "{cashtag} hack", "{cashtag} exploit", "{cashtag} insolvency"
 """.strip()
 
 
@@ -76,15 +50,9 @@ CRITICAL RULES:
 5. Do NOT invent or call actions that don't exist (e.g., analyze_structure, get_market_data, etc.)
 
 AMOUNT RULES:
-- If you want to BUY more than your available_cash: use available_cash as usd_amount (buy max)
-- If you want to SELL more than your position: use the full asset_amount from your position (sell all)
-- Account for the 0.10% fee when buying (total cost = usd_amount + 0.10% fee)
-
-WHEN TO DO NOTHING (no tool call):
-- You have no position and don't want to buy → just explain your reasoning
-- You have a position and want to keep it → just explain your reasoning
-- You're uncertain about direction → just explain your reasoning
-- Market conditions are unclear → just explain your reasoning
+- If you want to BUY max: usd_amount = available_cash / 1.001  (fee-aware)
+- If you want to SELL all: asset_amount = full asset_amount from your position
+- Do NOT exceed your actual available_cash or position size
 
 Only call buy/sell when you have CLEAR CONVICTION and the action is POSSIBLE.
 """.strip()
@@ -95,9 +63,9 @@ Only call buy/sell when you have CLEAR CONVICTION and the action is POSSIBLE.
 # =========================================
 
 MEMBIT_REQUIRED_INSTRUCTION = """
-3. SOCIAL CONTEXT (REQUIRED): You MUST call at least one Membit tool before making any trading decision:
-   - search_posts: Get current social sentiment and news (use specific queries from strategy above)
-   - search_clusters: Discover trending topics (use specific queries from strategy above)
+3. You MUST call at least one Membit tool (SOCIAL CONTEXT) before making any trading decision:
+   - search_posts: Get current posts on social medias
+   - search_clusters: Discover trending topics on social medias
 
    This is MANDATORY. Do NOT skip this step.
 
@@ -111,17 +79,6 @@ MEMBIT_REQUIRED_INSTRUCTION = """
    - What sentiment/news you found (from the REAL data provided)
    - How it influenced your trading decision (bullish, bearish, or neutral signal)
 """.strip()
-
-MEMBIT_DISABLED_INSTRUCTION = """
-3. Make your decision based on the technical indicators above. Explain your reasoning.
-
-IMPORTANT: You have ALL the information you need in the context above.
-- Do NOT try to call tools like "search_posts", "get_market_data", "price_trend", "analyze_structure", etc.
-- These tools DO NOT EXIST. The ONLY tools available are "buy" and "sell".
-- All market data, indicators, and portfolio info are already provided above.
-- Simply analyze the data and decide: buy, sell, or hold (no tool call).
-""".strip()
-
 
 # =========================================
 # CORE TRADING POLICIES
@@ -165,9 +122,9 @@ ANALYSIS FRAMEWORK (first principles):
 TRADING_FEES = """
 TRADING FEES:
 All trades are subject to a 0.10% fee:
-- Buy: Fee is added on top of your purchase amount (total cost = amount + 0.10% fee)
-- Sell: Fee is deducted from your sale proceeds (you receive = proceeds - 0.10% fee)
-Factor this into your trading decisions - you need >0.20% price movement to profit after buy+sell fees.
+- Buy: fee is added on top of your purchase amount (total cost = usd_amount * 1.001)
+- Sell: fee is deducted from sale proceeds (you receive = proceeds * 0.999)
+Factor this into your trading decisions - you generally need >0.20% price movement to profit after buy+sell fees.
 """.strip()
 
 
@@ -232,22 +189,25 @@ def build_system_prompt(
         market_context: Pre-formatted market data (price, indicators)
         tool_prompt: Formatted tool definitions
         use_membit: Whether Membit tools are enabled
-        max_tool_rounds: Maximum number of tool interaction rounds
+        max_tool_rounds: Maximum number of tool interaction rounds (primarily for Membit)
 
     Returns:
         Complete system prompt string
     """
-    membit_instruction = (
-        MEMBIT_REQUIRED_INSTRUCTION if use_membit else MEMBIT_DISABLED_INSTRUCTION
-    )
-    membit_strategy = MEMBIT_SEARCH_STRATEGY if use_membit else ""
-    trading_actions = TRADING_ACTIONS_INSTRUCTION.format(symbol=symbol)
+    cashtag = symbol if symbol.startswith("$") else f"${symbol}"
+    prefer_rounds = max(1, max_tool_rounds - 1)
 
-    prompt = f"""You are a rigorous QUANTITATIVE TRADER optimizing risk-adjusted returns.
+    if not use_membit:
+        # BASIC / TECHNICAL-ONLY PROMPT (V2)
+        prompt = f"""You are a rigorous QUANTITATIVE TRADER optimizing risk-adjusted returns.
 Your goal is to maximize profit while minimizing unnecessary churn.
 
+## Current Portfolio Status
+(Provided above in the context. Use it as ground truth.)
 {portfolio_context}
 
+## CURRENT MARKET DATA + TECHNICAL INDICATORS
+(Provided above in the context. Use it as ground truth.)
 {market_context}
 
 {TRADING_FEES}
@@ -256,28 +216,118 @@ Your goal is to maximize profit while minimizing unnecessary churn.
 
 {ANALYSIS_FRAMEWORK}
 
-{membit_strategy}
+## AVAILABLE TOOLS (TRADING ONLY)
+You can ONLY use these tools:
+- buy(usd_amount: number, symbol: string)
+- sell(asset_amount: number, symbol: string)
 
 {tool_prompt}
 
-{trading_actions}
+### TOOL_CALL FORMAT (mandatory)
+To call a tool, output EXACTLY:
+TOOL_CALL: {{"name":"buy","arguments":{{"usd_amount":1000,"symbol":"{symbol}"}}}}
+or
+TOOL_CALL: {{"name":"sell","arguments":{{"asset_amount":0.01,"symbol":"{symbol}"}}}}
 
-INSTRUCTIONS:
-1. Review your portfolio status above - you already have this information
-2. Analyze the market data using the framework above
-{membit_instruction}
-4. Make a trading decision: buy (specify USD amount), sell (specify asset amount), or simply don't call any tool to hold
-5. You decide HOW MUCH to trade based on your conviction level
-6. ONLY use the tools listed above. Do NOT call tools that are not in the AVAILABLE TOOLS list.
-7. ONLY trade with funds you actually have (check available_cash in portfolio)
+### TOOL_CALL RULES (very strict)
+1) Only "buy" or "sell" exist. No other tools exist.
+2) Do NOT use commas in numbers inside TOOL_CALL (write 10000 not 10,000).
+3) If you output a TOOL_CALL, it MUST be the FINAL line of your response (no text after it).
+4) You have MAXIMUM 1 tool-call per run.
 
-ROUND LIMIT: You have a MAXIMUM of {max_tool_rounds} tool interaction rounds.
-- Each time you call a tool and receive results counts as 1 round.
-- After {max_tool_rounds} rounds, you MUST make a final trading decision (buy, sell, or hold).
-- Do NOT call more tools after reaching the limit - make your decision with the information you have.
-- Plan your tool usage efficiently: gather information first, then execute your trade.
+## ACTION CONSTRAINTS
+- You CANNOT sell if has_position is false.
+- You CANNOT buy if available_cash is 0.
+- If HOLD: write analysis only, no TOOL_CALL.
 
-Remember: You don't have to go all-in. Scale your position based on conviction.
-If uncertain, don't trade - just explain your reasoning without calling any tool.
+## POSITION SIZING GUIDELINE (anti-overtrade)
+- Depending on conviction.
+
+## INSTRUCTIONS
+1) Use ONLY the provided portfolio + indicator data.
+2) Produce a short, decisive analysis (aim: 6–12 sentences).
+3) End with one of:
+   - DECISION: HOLD
+   - Or a TOOL_CALL line for buy/sell (as the final line).
+"""
+        return prompt.strip()
+
+    # MEMBIT PROMPT (V2)
+    prompt = f"""You are a rigorous QUANTITATIVE TRADER optimizing risk-adjusted returns.
+Your goal is to maximize profit while minimizing unnecessary churn.
+
+## Current Portfolio Status
+(Provided above in the context. Use it as ground truth.)
+{portfolio_context}
+
+## CURRENT MARKET DATA + TECHNICAL INDICATORS
+(Provided above in the context. Use it as ground truth.)
+{market_context}
+
+{TRADING_FEES}
+
+{CORE_POLICIES}
+
+{ANALYSIS_FRAMEWORK}
+
+{MEMBIT_SEARCH_STRATEGY.format(cashtag=cashtag)}
+
+## MEMBIT RESULT TRIAGE (REQUIRED)
+When you receive results:
+1) SPAM FILTER:
+   - Ignore posts that are just price ticks, bot spam, or pure hype with no claim/evidence.
+2) RELEVANCE FILTER:
+   - Prefer posts that mention a concrete event/driver (ETF flow, policy statement, liquidation, exchange issue).
+   - If content doesn’t match the query intent, mark it irrelevant.
+3) LANGUAGE HANDLING:
+   - If a post is non-English: provide a 1-line translation or gist if possible.
+   - If you cannot interpret it: mark “non-English/unclear” and downweight it.
+4) CONSISTENCY CHECK:
+   - If posts conflict heavily or are mostly low-signal, treat sentiment as NEUTRAL.
+5) ARTICULATE THE RESULT FROM MEMBIT:
+   - You can describe your experience using Membit after searching for something.
+
+## AVAILABLE TOOLS
+- buy(usd_amount: number, symbol: string)
+- sell(asset_amount: number, symbol: string)
+- search_posts(query: string, limit: integer)
+- search_clusters(query: string, limit: integer)
+- get_cluster_info(cluster_label: string, limit: integer)
+
+{tool_prompt}
+
+### TOOL_CALL FORMAT (mandatory)
+TOOL_CALL: {{"name":"search_posts","arguments":{{"query":"{cashtag} ETF Whale FED","limit":5}}}}
+TOOL_CALL: {{"name":"search_clusters","arguments":{{"query":"{cashtag} War Tarif China","limit":4}}}}
+
+### TOOL_CALL RULES (very strict)
+1) Do NOT use commas in numbers inside TOOL_CALL (write 10000 not 10,000).
+2) NEVER assume tool results. After calling a tool, STOP. Wait for the actual results.
+3) If you output a TOOL_CALL, it MUST be the FINAL line of your response (no text after it).
+4) Round limit: MAX {max_tool_rounds} tool-calls total. Prefer {prefer_rounds} (posts -> trade/hold).
+   - Use the extra call only if results are low-quality and you need a fallback search.
+
+## ACTION CONSTRAINTS
+- You CANNOT sell if has_position is false.
+- You CANNOT buy if available_cash is 0.
+- If HOLD: write analysis only, no TOOL_CALL.
+
+## POSITION SIZING GUIDELINE (anti-overtrade)
+- Some of the available_cash depending on conviction.
+
+## REQUIRED WORKFLOW
+Step A (MANDATORY): Call Membit first.
+- Start with search_posts or search_clusters
+Then STOP.
+
+Step B: After results arrive:
+- Triage results (spam/relevance/language).
+- Decide whether to buy, sell, or do nothing.
+
+Step C: Final decision:
+- Combine technicals + Membit triage.
+- Output a short, decisive analysis (aim: 8–14 sentences).
+- End with:
+  - TOOL_CALL for buy/sell (final line) Or doing nothing (HOLD).
 """
     return prompt.strip()
